@@ -1,25 +1,27 @@
 
-# Freshwater input to the Bering Sea, 1950--2016
+# Freshwater input to the Bering Sea, 1950-2017
 
 
 Author: Kelly Kearney
 
 
-This repository includes the code for the `buildberingrunoff.m` Matlab function, along with all dependent functions required to run it.
-
-
-This function collects river runoff data (primarily from USGS) and uses it to reconstruct historical freshwater input to the Bering Sea, then builds an appropriate runoff forcing file for use with a ROMS model domain located in this region.
-
-
 This repository is provided as supplementary material to the NOAA technical report of the same title.
 
+
+The primary functions in this repository are:
+
+
+
+  - watersheds.m: Analyzes Watershed Boundary Dataset hydrologic units to   determine which ones are part of the Bering Sea/Gulf of Alaska   watersheds, and finds any USGS streamflow measurement stations   located within them
+  - riversfromwatershed.m: Chooses which streamflow station measurements   to use for river mouth unit, and recontructs a single timeseries for   each.
+  - riversToRunoff.m: Reformats freshwater discharge timeseries into a   spatially-resolved grid suitable for use as a ROMS forcing file.
 
 
 ## Contents
 
             
 - Getting started        
-- Syntax
+- Useage
 
 ## Getting started
 
@@ -27,8 +29,44 @@ This repository is provided as supplementary material to the NOAA technical repo
 **Prerequisites**
 
 
-This function requires Matlab R2015b or later, along with the Statistics and Machine Learning Toolbox and Mapping Toolbox.  It also requires access to the [netCDF operators (NCO)](http://nco.sourceforge.net/) command line tools.
+This collection of functions requires Matlab R2015b or later, along with the Statistics and Machine Learning Toolbox, Mapping Toolbox, and Image Processing Toolbox.  The following additional code utilities are also used at various points in the code:
 
+
+
+  - [ConsoleProgressBar](https://www.mathworks.com/matlabcentral/fileexchange/30297-consoleprogressbar): by Evgeny Pr, utility for text progress bar
+  - [Shape Languge Modeling Toolbox](https://www.mathworks.com/matlabcentral/fileexchange/24443-slm-shape-language-modeling): by John D'Errico, Least squares spline modeling using shape primitives
+  - [borders](https://www.mathworks.com/matlabcentral/fileexchange/50390-borders): by Chad Greene, plots geographic borders
+  - [consolidator](https://www.mathworks.com/matlabcentral/fileexchange/8354-consolidator): by John D'Errico, consolidates arrays
+  - [distance2curve](https://www.mathworks.com/matlabcentral/fileexchange/34869-distance2curve): by John D'Errico, Find the closest point on a (n-dimensional) curve to any given point or set of points
+  - [inpaintn](https://www.mathworks.com/matlabcentral/fileexchange/27994-inpaint-over-missing-data-in-1-d--2-d--3-d--nd-arrays): by Damien Garcia, inpaint over missing data * [JSONlab](https://www.mathworks.com/matlabcentral/fileexchange/33381-jsonlab--a-toolbox-to-encode-decode-json-files): by Qianqian Fang, encode/decode JSON files
+  - [mergestruct](https://www.mathworks.com/matlabcentral/fileexchange/7842-catstruct): (renamed from catstruct.m) by Jos, merge fields from structure arrays * [plotSpread](https://www.mathworks.com/matlabcentral/fileexchange/37105-plot-spread-points--beeswarm-plot-): by Jonas, plots a beeswarm plot
+  - [subaxis](https://www.mathworks.com/matlabcentral/fileexchange/3696-subaxis-subplot): by Aslak Grinsted, better multi-axis layout
+  - [textLoc](https://www.mathworks.com/matlabcentral/fileexchange/17151-textloc): by Ben Barrowes, intuitive text positioning
+  - [roms_matlab](https://www.myroms.org): ROMS Matlab toolbox, available through the SVN repositories at myroms.org
+  - BeringBESTNPZ: by Kelly Kearney, informal collection of tools related to the Bering 10K ROMS domain (contact me for this)
+  - [aggregate](https://github.com/kakearney/aggregate-pkg): by Kelly Kearney, aggregates values in a matrix
+  - [cellstr2](https://github.com/kakearney/cellstr2-pkg): by Kelly Kearney, extention of `cellstr` function
+  - [cptcmap](https://github.com/kakearney/cptcmap-pkg): by Kelly Kearney, apply colormaps from color palette files
+  - [dirfull](https://github.com/kakearney/dirfull-pkg): by Kelly Kearney, extension of `dir` function
+  - [inpolygons](https://github.com/kakearney/inpolygons-pkg): by Kelly Kearney, extension of `inpolygon` function
+  - [joinsegments](https://github.com/kakearney/joinsegments-pkg): by Kelly Kearney, connects NaN-delimited polygon/polyline segments
+  - [mask2poly](https://github.com/kakearney/mask2poly-pkg): by Kelly Kearney, creates outline of logical mask
+  - [minmax](https://github.com/kakearney/minmax-pkg): by Kelly Kearney, returns min and max of an array
+  - [multitextloc](https://github.com/kakearney/multitextloc-pkg): by Kelly Kearney, extension of `textLoc` function
+  - [ncreads](https://github.com/kakearney/ncreads-pkg): by Kelly Kearney, extension of `ncread` function
+  - [offsetaxis](https://github.com/kakearney/offsetaxis-pkg): by Kelly Kearney, plots axis offset from plot area
+  - [plotgrid](https://github.com/kakearney/plotgrid-pkg): by Kelly Kearney, sets up and/or plots to a grid of axes
+  - [regexpfound](https://github.com/kakearney/regexpfound-pkg): by Kelly Kearney, return logical mask from `regexp` function
+  - [shapeprjread](https://github.com/kakearney/shapeprjread-pkg): by Kelly Kearney, extension of `shaperead` function for projected shapefiles
+  - [vlookup](https://github.com/kakearney/vlookup-pkg): by Kelly Kearney, implements lookup tables
+
+In addition to these toolboxes, several large datasets are required that are not bundled here.  These include:
+
+
+
+  - The Major Rivers data available through the Alaska State Geo-Spatial    Clearinghouse ([http://www.asgdc.state.ak.us/](http://www.asgdc.state.ak.us/)).  It includes selected    rivers from the USGS 1:2,000,000 Digital Line Graphs (DLG).
+  - National Hydrography Dataset Hydrography Feature Dataset    (NHDFlowlines): 1:24000 scale flowlines, ([https://nhd.usgs.gov/](https://nhd.usgs.gov/))
+  - Natural Earth 1:10m Rivers &amp; Lakes centerlines, ([http://www.naturalearthdata.com/](http://www.naturalearthdata.com/))
 
 **Downloading and installation**
 
@@ -39,207 +77,15 @@ This code can be downloaded from [Github](https://github.com/kakearney/beringriv
 **Matlab Search Path**
 
 
-This package relies on a number of external toolboxes (some my own, some third-party).  These have all been included in this repository. The following folders need to be added to your Matlab Search path (via `addpath`, `pathtool`, etc.):
+This package relies on a number of external toolboxes (some my own, some third-party).  These must be added to your Matlab Search path (via `addpath`, `pathtool`, etc.):
 
 
 
-```
-beringriver-pkg/FEX-function_handle
-beringriver-pkg/SLMtools/SLMtools
-beringriver-pkg/aggregate
-beringriver-pkg/beringriver
-beringriver-pkg/borders
-beringriver-pkg/bufferm2
-beringriver-pkg/cellstr2
-beringriver-pkg/ginput2
-beringriver-pkg/jsonlab-1.0
-beringriver-pkg/mergestruct
-beringriver-pkg/minmax
-beringriver-pkg/ncreads
-beringriver-pkg/regexpfound
-beringriver-pkg/rgb_v3
-beringriver-pkg/roms_matlab
-beringriver-pkg/shapeprjread
-beringriver-pkg/subgrid
-beringriver-pkg/vlookup
-```
+## Useage
+
+
+See comments in the three primary functions for a description of use. Note that this code is provided primarily for reference. For further information, or to aquire the exact datasets required   to run this code verbatim, please contact the author.
 
 
 
-## Syntax
-
-
-
-```matlab
-help buildberingrunoff
-```
-
-
-
-
-```
- BUILDBERINGRUNOFF  Run the river timeseries reconstruction process.
- 
-  [RivList, S, D, discharge, Dts, RusInv, precip] = ...
-     buildberingrunoff(grdfile, outbase, varargin) 
- 
-  This function collects river runoff data (primarily from USGS) and uses
-  it to reconstruct historical freshwater input to the Bering Sea, then
-  builds an appropriate runoff forcing file for use with a ROMS model
-  domain located in this region.
- 
-  While this function has been written to be easy to rerun periodically (as
-  new data becomes available), there are several places in the code that
-  were hard-coded based on a lot of manual analysis (especially in the
-  "Build timeseries" code cell).  I recommend double-checking the
-  assumptions in that section whenever rerunning... as stations are added,
-  removed, and extended, the old fit routines may no longer be the best
-  choice.
- 
-  This function loads several large external files (river coordinates from
-  several sources, the Russian river dataset).  The paths to these files
-  are set using optional input parameters whose defaults are currently set
-  to match my computer; update these as necessary to run this function
-  elsewhere.
- 
-  Input variables:
- 
-    grdfile:    full path to ROMS grid file
- 
-    outbase:    base name for output netcdf file.  Output file will be
-                named [outbase].[yr1]-[yr2].efol[efol]km.updated[yymmdd],
-                where yr1 and yr2 are the first and last year,
-                respectively,  of river data included in the file, efol is
-                the e-folding scale, and yymmdd is the date this function
-                is run.
- 
-  Optional input variables (passed as parameter/value pairs):
- 
-    efol:       e-folding length scale (km) used to distribute runoff
-                across grid cells [20]
- 
-    readcodes:  logical scalar indicating whether to download and read a
-                new list of parameter codes from the USGS site.  These
-                details are only occasionally changed by USGS, and I doubt
-                they would ever change the code associated with discharge,
-                but you may want to periodically refetch this data, just in
-                case.  Codes are saved to the current folder using the name
-                parameter_cd_query_XXX.txt, where XXX is one of the code
-                categories.  If false, existing parameter_cd_query*.txt
-                files in the current directory will be used. [false]
- 
-    readsites:  logical scalar indicating whether to query the USGS
-                database for a list of all Alaskan monitoring sites (active
-                and inactive) and the parameter codes measured at each.
-                Data is saved to a file in the current directory named
-                akriverlist.xml.  This step should be rerun any time you
-                intend to download new discharge data, to check for any new
-                sites becoming active.  If false, the exisiting
-                akriverlist.xml file in the current directory will be used.
-                [false]
- 
-    chooseriv:  logical scalar indicating whether to open the
-                river-choosing window in order to set up the river names
-                and mouth locations.  See chooserivers.m for more details.
-                This step only needs to be rerun if you intend to add a new
-                river to the dataset. [false]
- 
-    fetchdata:  logical scalar indicating whether to redownload discharge
-                data from the USGS website.  If true, data will be queried
-                and returned as JSON files, saved to a folder in the
-                current directory named rivertimeseriesYYYYMMDD, where
-                YYYYMMDD is today's date.  This step should be rerun
-                whenever you want to add more recent data to the final
-                forcing file. [false]
- 
-    choosedata: logical scalar indicating whether to redo the interactive
-                data analysis.  This consists of plotting the timeseries
-                associated with each river, and taking notes on how you
-                want to use the data in the "Build timeseries" section of
-                code.  This step should be repeated any time new data is
-                fetched.  After this step, you may need to go in and change
-                the hardcoded "Build timeseries" portion of this code.
-                [false] 
- 
-    writefile:  logical scalar indicating whether to create a new netcdf
-                forcing file holding the results of these calculations.
-                Can be set to false if you just want to retrieve
-                intermediate values (see output) without creating a new
-                file. [false]
- 
-    nhdfile:    path to .mat file holding National Hydrography Database
-                flowline data (see nhddata.m).  Only needed if chooseriv =
-                true.
-                ['nhddata.mat']
-  
-    majrivfile: path to shapefile of major Alaskan Rivers, downloaded from
-                the Alaska State Geospatial
-                Clearinghouse:http://www.asgdc.state.ak.us/ 
-                ['/Volumes/Storage/AKGeospatialClearinghouse/export_1481830586108/mv_major_river_ln.shp']
- 
-    fsuinvfile: path to the list of rivers associated with the Russian
-                river dataset (UCAR 553.2)
-                ['/Volumes/Storage/UCAR_553p2_russiaRivers/fsu.inv']
- 
-    fsudatafile:path to the river flow data associated with the Russian
-                river dataset 
-                ['/Volumes/Storage/UCAR_553p2_russiaRivers/fsu2.txt']
- 
-    nerivfile:  path to the Natural Earth river and lake centerline
-                shapefile (large scale 1:10m version)
-                ['/Volumes/Storage/NaturalEarth/ne_10m_rivers_lake_centerlines/ne_10m_rivers_lake_centerlines.shp']
- 
-  Output variables:
- 
-    RivList:    table listing all rivers, their river mouth locations, and
-                the USGS sites located along them
- 
-    S:          table listing all USGS sites (by name and site code), their
-                location (lat, lon, and hydrographic unit code), and the
-                dates over which each data measurement type is available at
-                each station.
- 
-    D:          table of sites along the rivers selected for this study,
-                including site name, site code, lat, lon, and the available
-                time vs discharge timeseries for each site.
- 
-    tall:       ntime x 1 array, union of time values in all timeseries
-                tables in D (sorted, but not evenly spaced)
- 
-    discharge:  ntime x nsite array, discharge data from D mapped onto an
-                even time grid, with NaNs wherever data not available.
- 
-    Dts:        structure holding filled data:
- 
-                filled:         ntime x nriv array, where the columns
-                                correspond to the rows of RivList 
-                filltype:       ntime x nriv x 2, filltype(:,:,1) = method
-                                used to fill in values in filled : 1 =
-                                direct copy/paste, 2 = SLM-fitting, 0 = not
-                                filled   filltype(:,:,2) = index of site
-                                used   
-                tmonth:         nmon x 1 datetime array, dates
-                                corresponding to the rows of the 'month'
-                                field  
-                month:          nmon x nriv array, monthly averages of
-                                'filled' field 
-                clima:          12 x nriv array, climatological monthly
-                                averages of 'filled' field 
-                filltypemonth:  nmon x nriv array, primary method used in
-                                each month-block 
-                fillsitemonth:  nmon x nriv array, primary site used in
-                                each month-block 
- 
-    RusInv:     table of russian river gauge details (data from fsuinv
-                file, see above)  
- 
-    precip:     nxi x neta x ntime array of surface freshwater flux (i.e.
-                runoff-as-precipitation), in kg/m^2/s.  This is the array
-                saved as the Runoff variable in the output netCDF file. 
-
-
-```
-
-
-
-<sub>[Published with MATLAB R2016a]("http://www.mathworks.com/products/matlab/")</sub>
+<sub>[Published with MATLAB R2016b]("http://www.mathworks.com/products/matlab/")</sub>
